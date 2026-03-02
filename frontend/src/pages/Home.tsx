@@ -10,6 +10,8 @@ import {
   LineChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTypingAnimation } from "@/hooks/useTypingAnimation";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const features = [
   {
@@ -57,11 +59,26 @@ const steps = [
   }
 ];
 
+const FadeInSection = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
+  const { ref, isVisible } = useScrollAnimation();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const Home = () => {
+  const { displayedText: heroTitle, isComplete } = useTypingAnimation("Detect Electricity Theft with Machine Learning", 40, 500);
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <header className="border-b border-border/50 backdrop-blur-md sticky top-0 z-50" style={{ background: "var(--glass-bg)" }}>
+      <header className="border-b border-border/50 backdrop-blur-md sticky top-0 z-50 animate-fade-in-up" style={{ background: "var(--glass-bg)" }}>
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -100,29 +117,31 @@ const Home = () => {
       {/* Hero Content */}
       <section className="container mx-auto px-6 py-20 text-center">
         <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
-            <Zap className="w-4 h-4 text-primary" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in-up">
+            <Zap className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">AI-Powered Detection</span>
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Detect Electricity Theft with{" "}
-            <span className="gradient-text">Machine Learning</span>
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight min-h-[1.2em]">
+            <span className="gradient-heading">
+              {heroTitle}
+              {!isComplete && <span className="animate-pulse">|</span>}
+            </span>
           </h1>
           
-          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
             Advanced hybrid CNN-Random Forest system for identifying abnormal consumption patterns 
             and preventing energy theft in utility networks.
           </p>
           
-          <div className="flex items-center justify-center gap-4">
-            <Button asChild size="lg" className="px-8">
+          <div className="flex items-center justify-center gap-4 animate-fade-in-up delay-400 opacity-0" style={{ animationFillMode: 'forwards' }}>
+            <Button asChild size="lg" className="px-8 hover:scale-105 transition-transform">
               <Link to="/dashboard">
                 Launch Dashboard
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline" size="lg" className="hover:scale-105 transition-transform">
               <Link to="/proposed-system">
                 Learn More
               </Link>
@@ -133,24 +152,28 @@ const Home = () => {
 
       {/* Features Grid */}
       <section className="container mx-auto px-6 py-16 border-t border-border">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Key Features</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Comprehensive solution for electricity theft detection
-          </p>
-        </div>
+        <FadeInSection>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 gradient-heading">Key Features</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive solution for electricity theft detection
+            </p>
+          </div>
+        </FadeInSection>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, i) => {
             const Icon = feature.icon;
             return (
-              <div key={i} className="glass-card rounded-xl p-6 text-center">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20">
-                  <Icon className="w-6 h-6 text-primary" />
+              <FadeInSection key={i} delay={i * 100}>
+                <div className="glass-card rounded-xl p-6 text-center h-full hover:scale-105 transition-transform duration-300">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20 group-hover:animate-pulse">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
                 </div>
-                <h3 className="font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </div>
+              </FadeInSection>
             );
           })}
         </div>
@@ -158,44 +181,50 @@ const Home = () => {
 
       {/* How It Works */}
       <section className="container mx-auto px-6 py-16 border-t border-border">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">How It Works</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Simple four-step process for theft detection
-          </p>
-        </div>
+        <FadeInSection>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 gradient-heading">How It Works</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Simple four-step process for theft detection
+            </p>
+          </div>
+        </FadeInSection>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((step, i) => (
-            <div key={i} className="relative">
-              <div className="glass-card rounded-xl p-6">
-                <span className="text-4xl font-bold text-primary/20">{step.number}</span>
-                <h3 className="font-semibold mt-4 mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
+            <FadeInSection key={i} delay={i * 150}>
+              <div className="relative h-full">
+                <div className="glass-card rounded-xl p-6 h-full hover:scale-105 transition-transform duration-300">
+                  <span className="text-4xl font-bold text-primary/20">{step.number}</span>
+                  <h3 className="font-semibold mt-4 mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                </div>
+                {i < steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-px bg-border" />
+                )}
               </div>
-              {i < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-px bg-border" />
-              )}
-            </div>
+            </FadeInSection>
           ))}
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="container mx-auto px-6 py-16 border-t border-border">
-        <div className="glass-card rounded-2xl p-12 text-center">
-          <Lock className="w-12 h-12 text-primary mx-auto mb-6" />
-          <h2 className="text-3xl font-bold mb-4">Ready to Secure Your Grid?</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-            Start using our AI-powered system to detect electricity theft and protect your utility network.
-          </p>
-          <Button asChild size="lg">
-            <Link to="/dashboard">
-              Access Dashboard
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-          </Button>
-        </div>
+        <FadeInSection>
+          <div className="glass-card rounded-2xl p-12 text-center hover:shadow-lg transition-shadow duration-500">
+            <Lock className="w-12 h-12 text-primary mx-auto mb-6 animate-pulse-slow" />
+            <h2 className="text-3xl font-bold mb-4 gradient-heading">Ready to Secure Your Grid?</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto mb-8">
+              Start using our AI-powered system to detect electricity theft and protect your utility network.
+            </p>
+            <Button asChild size="lg" className="hover:scale-105 transition-transform">
+              <Link to="/dashboard">
+                Access Dashboard
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </FadeInSection>
       </section>
 
       {/* Footer */}

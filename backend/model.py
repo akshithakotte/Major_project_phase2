@@ -4,6 +4,7 @@ Contains CNN and Random Forest model architectures.
 """
 
 import os
+import logging
 from typing import Tuple, Any
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -12,6 +13,9 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential, model_from_json
 from tensorflow.keras.layers import Dense, Conv1D, Flatten, Dropout, MaxPooling1D
 from tensorflow.keras.callbacks import EarlyStopping
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Suppress TensorFlow warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -28,7 +32,7 @@ def build_cnn(input_dim: int) -> Sequential:
     Returns:
         Compiled CNN model
     """
-    print("[INFO] Building CNN model...")
+    logger.info("Building CNN model...")
     
     model = Sequential([
         Dense(256, input_shape=(input_dim,), activation='relu'),
@@ -43,7 +47,7 @@ def build_cnn(input_dim: int) -> Sequential:
         metrics=['accuracy']
     )
     
-    print("[INFO] CNN Model Built Successfully")
+    logger.info("CNN Model Built Successfully")
     return model
 
 
@@ -57,7 +61,7 @@ def build_random_forest(n_estimators: int = 100) -> RandomForestClassifier:
     Returns:
         Random Forest classifier
     """
-    print("[INFO] Building Random Forest model...")
+    logger.info("Building Random Forest model...")
     
     rf_model = RandomForestClassifier(
         n_estimators=n_estimators,
@@ -68,7 +72,7 @@ def build_random_forest(n_estimators: int = 100) -> RandomForestClassifier:
         n_jobs=-1
     )
     
-    print("[INFO] Random Forest Model Built Successfully")
+    logger.info("Random Forest Model Built Successfully")
     return rf_model
 
 
@@ -95,10 +99,10 @@ def save_model(model: Sequential, model_dir: str = "model") -> bool:
         weights_path = os.path.join(model_dir, "model.weights.h5")
         model.save_weights(weights_path)
         
-        print(f"[INFO] Model saved to {model_dir}")
+        logger.info(f"Model saved to {model_dir}")
         return True
     except Exception as e:
-        print(f"[ERROR] Failed to save model: {e}")
+        logger.error(f"Failed to save model: {e}")
         return False
 
 
@@ -123,13 +127,13 @@ def load_model(model_dir: str = "model") -> Sequential:
     if not os.path.exists(weights_path):
         raise FileNotFoundError(f"Model weights not found at {weights_path}")
     
-    print("[INFO] Loading saved CNN model...")
+    logger.info("Loading saved CNN model...")
     
     with open(model_json_path, "r") as f:
         model = model_from_json(f.read())
     
     model.load_weights(weights_path)
-    print("[INFO] Model loaded successfully")
+    logger.info("Model loaded successfully")
     
     return model
 
@@ -154,7 +158,7 @@ def train_cnn(
     Returns:
         Tuple of (trained model, metrics dict)
     """
-    print("[INFO] Starting CNN training...")
+    logger.info("Starting CNN training...")
     
     model = build_cnn(X_train.shape[1])
     
@@ -191,12 +195,12 @@ def train_cnn(
         "confusion_matrix": confusion_matrix(y_true, y_pred).tolist()
     }
     
-    print("\n========== CNN MODEL EVALUATION ==========")
-    print(f"Accuracy  : {metrics['accuracy']:.2f}%")
-    print(f"Precision : {metrics['precision']:.2f}%")
-    print(f"Recall    : {metrics['recall']:.2f}%")
-    print(f"F1 Score  : {metrics['f1_score']:.2f}%")
-    print("=========================================\n")
+    logger.info("========== CNN MODEL EVALUATION ==========")
+    logger.info(f"Accuracy  : {metrics['accuracy']:.2f}%")
+    logger.info(f"Precision : {metrics['precision']:.2f}%")
+    logger.info(f"Recall    : {metrics['recall']:.2f}%")
+    logger.info(f"F1 Score  : {metrics['f1_score']:.2f}%")
+    logger.info("=========================================")
     
     return model, metrics
 
@@ -219,7 +223,7 @@ def train_random_forest(
     Returns:
         Tuple of (trained model, metrics dict)
     """
-    print("[INFO] Starting Random Forest training...")
+    logger.info("Starting Random Forest training...")
     
     # Convert one-hot to class labels
     y_train_rf = np.argmax(y_train, axis=1)
@@ -228,6 +232,7 @@ def train_random_forest(
     # Build and train
     rf_model = build_random_forest()
     rf_model.fit(X_train, y_train_rf)
+    logger.info("Random Forest training completed")
     
     # Predict
     y_pred = rf_model.predict(X_test)
@@ -240,11 +245,11 @@ def train_random_forest(
         "confusion_matrix": confusion_matrix(y_test_rf, y_pred).tolist()
     }
     
-    print("\n====== RANDOM FOREST MODEL EVALUATION ======")
-    print(f"Accuracy  : {metrics['accuracy']:.2f}%")
-    print(f"Precision : {metrics['precision']:.2f}%")
-    print(f"Recall    : {metrics['recall']:.2f}%")
-    print(f"F1 Score  : {metrics['f1_score']:.2f}%")
-    print("===========================================\n")
+    logger.info("====== RANDOM FOREST MODEL EVALUATION ======")
+    logger.info(f"Accuracy  : {metrics['accuracy']:.2f}%")
+    logger.info(f"Precision : {metrics['precision']:.2f}%")
+    logger.info(f"Recall    : {metrics['recall']:.2f}%")
+    logger.info(f"F1 Score  : {metrics['f1_score']:.2f}%")
+    logger.info("===========================================")
     
     return rf_model, metrics

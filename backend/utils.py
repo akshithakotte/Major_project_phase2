@@ -5,8 +5,24 @@ Contains helper functions for file handling, validation, and metrics management.
 
 import os
 import json
+import logging
+from datetime import datetime
 from typing import Dict, Any, Optional
 from flask import jsonify
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.log')),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Maximum file size (10 MB)
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 # Base directories
@@ -21,6 +37,7 @@ def ensure_directories():
     """Create necessary directories if they don't exist."""
     for directory in [DATASET_DIR, MODEL_DIR, METRICS_DIR, GRAPHS_DIR]:
         os.makedirs(directory, exist_ok=True)
+    logger.info("Directories ensured")
 
 
 def allowed_file(filename: str, allowed_extensions: list = None) -> bool:
@@ -39,6 +56,22 @@ def allowed_file(filename: str, allowed_extensions: list = None) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
+def check_file_size(file) -> bool:
+    """
+    Check if file size is within allowed limit.
+    
+    Args:
+        file: File object from request
+    
+    Returns:
+        True if file size is acceptable, False otherwise
+    """
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    return size <= MAX_FILE_SIZE
+
+
 def save_uploaded_file(file, filename: str) -> str:
     """
     Save an uploaded file to the dataset directory.
@@ -49,10 +82,17 @@ def save_uploaded_file(file, filename: str) -> str:
     
     Returns:
         Path to the saved file
+    
+    Raises:
+        ValueError: If file size exceeds limit
     """
+    if not check_file_size(file):
+        raise ValueError(f"File size exceeds maximum limit of {MAX_FILE_SIZE / (1024*1024):.1f} MB")
+    
     ensure_directories()
     filepath = os.path.join(DATASET_DIR, filename)
     file.save(filepath)
+    logger.info(f"File saved: {filepath}")
     return filepath
 
 
@@ -71,25 +111,57 @@ def load_metrics() -> Optional[Dict[str, Any]]:
         return json.load(f)
 
 
-def save_metrics_to_file(metrics: Dict[str, Any]) -> bool:
+def save_metrics_to_file(metrics: Dict[str, Any], version: str = None) -> bool:
     """
-    Save metrics to the metrics.json file.
+    Save metrics to the metrics.json file with optional versioning.
     
     Args:
         metrics: Dictionary containing metrics to save
+        version: Optional version identifier for the model
     
     Returns:
         True if saved successfully, False otherwise
     """
     try:
         ensure_directories()
+        
+        # Add timestamp and version to metrics
+        metrics['timestamp'] = datetime.now().isoformat()
+        if version:
+            metrics['version'] = version
+        
+        # Save current metrics
         metrics_path = os.path.join(METRICS_DIR, "metrics.json")
         with open(metrics_path, "w") as f:
             json.dump(metrics, f, indent=4)
+        
+        # Also save versioned copy
+        version_str = version or datetime.now().strftime("%Y%m%d_%H%M%S")
+        versioned_path = os.path.join(METRICS_DIR, f"metrics_v{version_str}.json")
+        with open(versioned_path, "w") as f:
+            json.dump(metrics, f, indent=4)
+        
+        logger.info(f"Metrics saved: {metrics_path} and {versioned_path}")
         return True
     except Exception as e:
-        print(f"[ERROR] Failed to save metrics: {e}")
+        logger.error(f"Failed to save metrics: {e}")
         return False
+
+
+def get_model_versions() -> list:
+    """
+    Get list of all saved model versions.
+    
+    Returns:
+        List of version strings
+    """
+    versions = []
+    if os.path.exists(METRICS_DIR):
+        for filename in os.listdir(METRICS_DIR):
+            if filename.startswith("metrics_v") and filename.endswith(".json"):
+                version = filename.replace("metrics_v", "").replace(".json", "")
+                versions.append(version)
+    return sorted(versions, reverse=True)
 
 
 def create_error_response(message: str, status_code: int = 400) -> tuple:
